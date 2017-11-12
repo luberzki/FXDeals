@@ -1,5 +1,6 @@
 package com.luberzki.fxdeals.controller;
 
+import java.io.File;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,17 +19,23 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.luberzki.fxdeals.domain.CsvContent;
 import com.luberzki.fxdeals.exception.StorageFileNotFoundException;
+import com.luberzki.fxdeals.service.api.CsvContentService;
 import com.luberzki.fxdeals.storage.StorageService;
+import com.luberzki.fxdeals.utils.CsvUtils;
 
 @Controller
 public class FileUploadController {
 	
 	private final StorageService storageService;
 	
+	private CsvContentService csvContentService;
+	
 	@Autowired
-	public FileUploadController(StorageService storageService) {
+	public FileUploadController(StorageService storageService, CsvContentService csvContentService) {
 		this.storageService = storageService;
+		this.csvContentService = csvContentService;
 	}
 	
 	@GetMapping("/")
@@ -49,10 +56,14 @@ public class FileUploadController {
 	}
 	
 	@PostMapping("/")
-	public String handleFileUpload(@RequestParam("file") MultipartFile file, RedirectAttributes redirectAttributes) {
+	public String handleFileUpload(@RequestParam("file") MultipartFile multipartFile, RedirectAttributes redirectAttributes) throws Exception {
 		
-		storageService.store(file);
-		redirectAttributes.addFlashAttribute("message", "You successfully uploaded" + file.getOriginalFilename() + "!");
+		CsvUtils csvUtils = new CsvUtils();
+		File file = csvUtils.convert(multipartFile);
+		csvUtils.loadObjectList(CsvContent.class, file);
+		
+		storageService.store((MultipartFile) file);
+		redirectAttributes.addFlashAttribute("message", "You successfully uploaded" + ((MultipartFile) file).getOriginalFilename() + "!");
 		return "redirect:/";
 	}
 	
